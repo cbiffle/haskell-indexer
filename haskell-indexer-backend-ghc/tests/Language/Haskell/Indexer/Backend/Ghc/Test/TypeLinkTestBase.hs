@@ -84,6 +84,20 @@ testScopedTypeVarBinds = assertXRefsFrom ["typelink/ScopedTypeVar.hs"] $ do
             includesPos (13,18) u4
         _ -> checking $ assertFailure "Scoped usage count differs"
 
+testPatternSynonymBinds :: AssertionInEnv
+testPatternSynonymBinds = assertXRefsFrom ["typelink/PatternSynonyms.hs"] $ do
+    declAt (4,9) >>= usages >>= \case
+        [u1] -> do
+            includesPos (7,15) u1
+        _ -> checking $
+            assertFailure "Uni-directional pattern synonym usage count differs"
+    declsAt (9,9) >>= \case
+        [e, p] -> do
+            singleUsage e >>= includesPos (12,14)
+            singleUsage p >>= includesPos (15,14)
+        _ -> checking $
+            assertFailure "Expected two decls from bi-directional pattern syn"
+
 testInlineSignature :: AssertionInEnv
 testInlineSignature = assertXRefsFrom ["typelink/InlineSig.hs"] $
     declAt (4,15) >>= usages >>= \case
@@ -147,6 +161,7 @@ allTests env =
     , envTestCase "class-var-binds" testClassVarBinds
     , envTestCase "forall-binds" testForallBinds
     , envTestCase "scoped-var-binds" testScopedTypeVarBinds
+    , envTestCase "pattern-syn-binds" testPatternSynonymBinds
     , envTestCase "inline-signature" testInlineSignature
     , envTestCase "let-var-binds" testLetVarBinds
     , envTestCase "simple-signature" testSimpleSignature

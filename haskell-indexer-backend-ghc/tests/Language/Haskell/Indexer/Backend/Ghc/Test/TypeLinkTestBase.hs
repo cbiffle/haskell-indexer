@@ -86,17 +86,26 @@ testScopedTypeVarBinds = assertXRefsFrom ["typelink/ScopedTypeVar.hs"] $ do
 
 testPatternSynonymBinds :: AssertionInEnv
 testPatternSynonymBinds = assertXRefsFrom ["typelink/PatternSynonyms.hs"] $ do
-    declAt (4,9) >>= usages >>= \case
-        [u1] -> do
-            includesPos (7,15) u1
-        _ -> checking $
-            assertFailure "Uni-directional pattern synonym usage count differs"
+    -- Note: uni-directional pattern synonyms generate a decl from the
+    -- type-checked tree (with the decorated names $mName), *and* a decl from
+    -- the renamed tree (with the name you'd expect). Only the latter is ever
+    -- ref'd.
+    declsAt (4,9) >>= \case
+      [_, p] -> do
+        singleUsage p >>= includesPos (7, 15)
+      _ -> checking $
+          assertFailure "Expected two decls from uni-directional pattern syn"
+    -- Note: bi-directional pattern synonyms generate some decls from the
+    -- type-checked tree (with decorated names like $bName $mName), *and* a
+    -- decl from the renamed tree. The first is ref'd when a synonym is used
+    -- in an expression context; the last, in patterns. (The $m one is never
+    -- referenced.)
     declsAt (9,9) >>= \case
-        [e, p] -> do
-            singleUsage e >>= includesPos (12,14)
-            singleUsage p >>= includesPos (15,14)
+        [p, _, e] -> do
+            singleUsage p >>= includesPos (12,14)
+            singleUsage e >>= includesPos (15,14)
         _ -> checking $
-            assertFailure "Expected two decls from bi-directional pattern syn"
+            assertFailure "Expected three decls from bi-directional pattern syn"
 
 testInlineSignature :: AssertionInEnv
 testInlineSignature = assertXRefsFrom ["typelink/InlineSig.hs"] $

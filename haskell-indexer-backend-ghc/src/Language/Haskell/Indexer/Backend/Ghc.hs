@@ -199,10 +199,15 @@ declsFromRenamed ctx (hsGroup, _, _, _) =
 #if __GLASGOW_HASKELL__ >= 800
         explicitVarBindDefs = map mkDeclName explicitNames
         varBindDefs = explicitVarBindDefs ++ implicitVarBindDefs
+        patSynDecls = map patdecl . universeBi $ hsGroup
+          where
+            patdecl :: PatSynBind Name Name -> DeclAndAlt
+            patdecl = declWithWrappedIdLoc typeStringyType . psb_id
 #else
         varBindDefs = concatMap declsFromForall . universeBi $ hsGroup
+        patSynDecls = []
 #endif
-    in (concat [defs, instDefs, varBindDefs], instChanges)
+    in (concat [defs, instDefs, varBindDefs, patSynDecls], instChanges)
   where
     keepFirst [] = Nothing
     keepFirst xs@((name, _):_) = Just $! (name, minimum $ map snd xs)
